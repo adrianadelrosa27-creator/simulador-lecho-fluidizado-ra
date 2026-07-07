@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Lecho Fluidizado · Simulador AR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --paper:#F2F5F6; --card:#FFFFFF; --ink:#182B36; --sub:#5B6E79; --line:#DCE4E8;
+  --blue:#0E6BA8; --blue-soft:#E3EEF6; --sand:#C87F2F; --sand-soft:#F6ECDD;
+  --r0:#6B7A85; --r1:#7B5FB0; --r2:#1F8A5D; --r3:#D07020; --r4:#C43D3D;
+  --rad:14px; --shadow:0 1px 2px rgba(24,43,54,.06),0 4px 14px rgba(24,43,54,.05);
+  --mono:'IBM Plex Mono',monospace; --disp:'Space Grotesk',sans-serif;
+}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'IBM Plex Sans',system-ui,sans-serif;background:var(--paper);color:var(--ink);
+  background-image:linear-gradient(rgba(14,107,168,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(14,107,168,.045) 1px,transparent 1px);
+  background-size:28px 28px;min-height:100vh}
+
+/* ── HEADER ─────────────────────────────── */
+header{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#brand{font-family:var(--disp);font-weight:700;font-size:1.02rem;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+#brand .dot{width:10px;height:10px;border-radius:3px;background:var(--sand);box-shadow:0 0 0 3px var(--sand-soft)}
+#brand small{font-family:var(--mono);font-weight:400;font-size:.62rem;color:var(--sub);letter-spacing:.08em;text-transform:uppercase}
+#regime-badge{font-family:var(--mono);font-weight:600;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;
+  padding:5px 12px;border-radius:999px;border:1.5px solid var(--r0);color:var(--r0);background:#fff;transition:all .3s;white-space:nowrap}
+.hspace{flex:1}
+.hbtn{font-family:var(--disp);font-weight:500;font-size:.8rem;padding:7px 14px;border-radius:9px;border:1.5px solid var(--line);
+  background:#fff;color:var(--ink);cursor:pointer;transition:all .18s;white-space:nowrap}
+.hbtn:hover{border-color:var(--blue)}
+.hbtn.on{background:var(--ink);border-color:var(--ink);color:#fff}
+#btn-pause{border-color:var(--sand);color:var(--sand);font-weight:700}
+#btn-pause.on{background:var(--sand);border-color:var(--sand);color:#fff}
+
+/* ── LAYOUT ─────────────────────────────── */
+#layout{display:grid;grid-template-columns:290px minmax(0,1fr) 400px;gap:16px;max-width:1440px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--rad);box-shadow:var(--shadow)}
+.card-h{font-family:var(--disp);font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:var(--sub);
+  padding:12px 16px 10px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.card-b{padding:14px 16px}
+@media(max-width:1120px){#layout{grid-template-columns:1fr 1fr}#viz-card{grid-column:1/-1;order:-1}}
+@media(max-width:720px){#layout{grid-template-columns:1fr;padding:10px;gap:12px}}
+
+/* ── VIZ CARD ───────────────────────────── */
+#viz-card .card-b{padding:0}
+#sim-wrap{position:relative;width:100%;height:min(58vh,560px);min-height:340px}
+#sim{display:block;width:100%;height:100%}
+#u-block{padding:14px 18px 16px;border-top:1px solid var(--line);background:linear-gradient(180deg,#FBFCFD,#F6F9FA);border-radius:0 0 var(--rad) var(--rad)}
+.u-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.u-head b{font-family:var(--disp);font-size:.86rem}
+.u-head .uval{font-family:var(--mono);font-weight:600;font-size:.95rem;color:var(--blue)}
+.u-head .uratio{font-family:var(--mono);font-size:.7rem;color:var(--sub);margin-left:8px}
+#u-track{position:relative;height:34px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:10px;border-radius:6px;outline:none;cursor:pointer;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;
+  border:3px solid var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer}
+#sl-u{position:absolute;top:4px;left:0}
+.u-tick{position:absolute;top:22px;transform:translateX(-50%);font-family:var(--mono);font-size:.6rem;font-weight:600;white-space:nowrap}
+.u-tick::before{content:'';position:absolute;left:50%;top:-9px;width:2px;height:8px;background:currentColor;transform:translateX(-50%)}
+#tick-umf{color:var(--r1)} #tick-ut{color:var(--r4)}
+.u-legend{display:flex;gap:14px;margin-top:14px;font-size:.62rem;color:var(--sub);flex-wrap:wrap}
+.u-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+
+/* ── CONTROLS ───────────────────────────── */
+.ctl{margin-bottom:14px}
+.ctl:last-child{margin-bottom:0}
+.ctl-lab{display:flex;justify-content:space-between;align-items:baseline;font-size:.76rem;font-weight:600;margin-bottom:6px}
+.ctl-lab .val{font-family:var(--mono);font-weight:600;color:var(--blue);font-size:.78rem}
+.ctl small.hint{display:block;font-size:.62rem;color:var(--sub);margin-top:3px}
+select,input[type=number]{width:100%;background:#fff;border:1.5px solid var(--line);border-radius:8px;color:var(--ink);
+  font-family:var(--mono);font-size:.76rem;padding:7px 9px;outline:none;transition:border .15s}
+select:focus,input[type=number]:focus{border-color:var(--blue)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{padding:5px 9px;font-size:.66rem;font-family:var(--mono);border-radius:7px;border:1.5px solid var(--line);background:#fff;color:var(--sub);cursor:pointer;transition:all .15s}
+.chip.sel{background:var(--blue-soft);color:var(--blue);border-color:var(--blue);font-weight:600}
+details{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#FAFCFD}
+details summary{font-family:var(--disp);font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--sub);cursor:pointer;user-select:none}
+details[open] summary{margin-bottom:10px}
+
+/* ── RESULTS + CHARTS PANEL ─────────────── */
+.tabs{display:flex;gap:4px;padding:8px 8px 0}
+.tab{flex:1;font-family:var(--disp);font-weight:700;font-size:.74rem;letter-spacing:.03em;padding:9px 4px;border:none;background:none;
+  color:var(--sub);cursor:pointer;border-radius:9px 9px 0 0;border-bottom:2.5px solid transparent;transition:all .18s}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-soft)}
+.tabpane{display:none;padding:14px 14px 16px}
+.tabpane.on{display:block}
+#res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.res{background:#FAFCFD;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.res b{display:block;font-size:.6rem;font-weight:600;color:var(--sub);letter-spacing:.03em;margin-bottom:3px}
+.res span{font-family:var(--mono);font-weight:600;font-size:.82rem}
+.res i{font-style:normal;font-size:.58rem;color:var(--sub);margin-left:2px}
+.res.hero{background:var(--blue-soft);border-color:#BFD9EA}
+.res.hero span{color:var(--blue)}
+#model-box{margin-top:12px;font-size:.66rem;color:var(--sub);background:#FAFCFD;border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.7}
+#model-box b{color:var(--ink);font-family:var(--disp)}
+#model-box .eq{font-family:var(--mono);font-size:.62rem;color:var(--ink);display:block;margin:2px 0 6px}
+.chart-card{margin-bottom:14px}
+.chart-card h4{font-family:var(--disp);font-size:.74rem;font-weight:700;margin-bottom:2px}
+.chart-card p{font-size:.62rem;color:var(--sub);margin-bottom:6px}
+.chart-card canvas{width:100%;height:190px;display:block;background:#FDFEFE;border:1px solid var(--line);border-radius:10px}
+#charts-pane .grp{font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sub);
+  margin:16px 0 10px;padding-bottom:5px;border-bottom:1px dashed var(--line)}
+#charts-pane .grp:first-child{margin-top:0}
+
+footer{max-width:1440px;margin:0 auto;padding:6px 18px 22px;font-size:.62rem;color:var(--sub);font-family:var(--mono)}
+
+/* ── AR MODE ────────────────────────────── */
+#ar-root{display:none}
+body.ar-on{overflow:hidden}
+body.ar-on header,body.ar-on #layout,body.ar-on footer{display:none}
+body.ar-on #ar-root{display:block;position:fixed;inset:0;width:100vw;height:100vh;z-index:1}
+#ar-root a-scene{width:100%!important;height:100%!important}
+#ar-root .a-canvas{position:fixed!important;inset:0;width:100%!important;height:100%!important;z-index:1}
+#ar-root video,video#arjs-video{position:fixed!important;inset:0;z-index:0}
+#ar-hud{position:fixed;left:0;right:0;bottom:0;z-index:999;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);
+  border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:none}
+body.ar-on #ar-hud{display:block}
+#ar-hud .row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+#ar-hud .row:last-child{margin-bottom:0}
+#ar-data{font-family:var(--mono);font-size:.66rem;color:var(--ink);text-align:center;margin-bottom:8px;padding:5px 6px;background:var(--blue-soft);border-radius:8px;font-weight:600}
+#ar-hud label{font-family:var(--mono);font-size:.64rem;font-weight:600;width:78px;flex-shrink:0}
+#ar-hud .v{font-family:var(--mono);font-size:.64rem;color:var(--blue);width:86px;text-align:right;flex-shrink:0}
+#ar-top{position:fixed;top:0;left:0;right:0;z-index:999;display:none;align-items:center;gap:10px;
+  padding:calc(8px + env(safe-area-inset-top)) 12px 8px;background:linear-gradient(rgba(255,255,255,.9),rgba(255,255,255,0))}
+body.ar-on #ar-top{display:flex}
+#ar-msg{font-family:var(--mono);font-size:.64rem;color:var(--ink);background:rgba(255,255,255,.9);padding:5px 10px;border-radius:8px;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<header>
+  <div id="brand"><span class="dot"></span>Lecho Fluidizado <small>Simulador · Unidad II</small></div>
+  <div id="regime-badge">LECHO FIJO</div>
+  <div class="hspace"></div>
+  <button class="hbtn on" id="btn-2d">Simulación 2D</button>
+  <button class="hbtn" id="btn-ar">📷 Realidad Aumentada</button>
+  <button class="hbtn" id="btn-pause">⏸ Pausa</button>
+</header>
+
+<div id="layout">
+
+  <!-- CONTROLS -->
+  <section class="card" id="ctl-card">
+    <div class="card-h">Variables de operación</div>
+    <div class="card-b">
+      <div class="ctl">
+        <div class="ctl-lab"><span>Diámetro de partícula d<sub>p</sub></span><span class="val" id="v-dp">500 µm</span></div>
+        <input type="range" id="sl-dp" min="50" max="3000" step="10" value="500">
+      </div>
+      <div class="ctl">
+        <div class="ctl-lab"><span>Porosidad del lecho ε<sub>M</sub></span><span class="val" id="v-eps">0.42</span></div>
+        <input type="range" id="sl-eps" min="0.35" max="0.55" step="0.005" value="0.42">
+        <small class="hint">Porosidad del lecho empacado (mínima fluidización). La porosidad operativa ε se calcula con u.</small>
+      </div>
+      <div class="ctl">
+        <div class="ctl-lab"><span>Altura del lecho L<sub>M</sub></span><span class="val" id="v-L0">0.40 m</span></div>
+        <input type="range" id="sl-L0" min="0.10" max="1.20" step="0.01" value="0.40">
+        <small class="hint">Altura del lecho empacado. M<sub>s</sub> = ρ<sub>p</sub>·A·(1−ε<sub>M</sub>)·L<sub>M</sub></small>
+      </div>
+      <div class="ctl two">
+        <div>
+          <div class="ctl-lab"><span>Material (ρ<sub>p</sub>)</span></div>
+          <select id="sel-mat">
+            <option value="2650" data-c="#B06E22" selected>Arena · 2650</option>
+            <option value="1500" data-c="#9AA694">Catalizador FCC · 1500</option>
+            <option value="2500" data-c="#7FA8C9">Vidrio · 2500</option>
+            <option value="1300" data-c="#33302C">Carbón · 1300</option>
+          </select>
+        </div>
+        <div>
+          <div class="ctl-lab"><span>Fluido</span></div>
+          <select id="sel-fluid">
+            <option value="air" selected>Aire 20 °C</option>
+            <option value="water">Agua 20 °C</option>
+          </select>
+        </div>
+      </div>
+      <div class="ctl">
+        <div class="ctl-lab"><span>Esfericidad φ<sub>s</sub></span></div>
+        <div class="chips" id="phi-chips">
+          <button class="chip" data-phi="1.0">Esfera 1.0</button>
+          <button class="chip sel" data-phi="0.8">Arena 0.8</button>
+          <button class="chip" data-phi="0.7">Irregular 0.7</button>
+          <button class="chip" data-phi="0.65">Carbón 0.65</button>
+        </div>
+      </div>
+      <details>
+        <summary>Parámetros del equipo</summary>
+        <div class="ctl two">
+          <div>
+            <div class="ctl-lab"><span>D columna (m)</span></div>
+            <input type="number" id="in-D" value="0.10" min="0.03" max="1" step="0.01">
+          </div>
+          <div>
+            <div class="ctl-lab"><span>Masa sólidos</span></div>
+            <div style="font-family:var(--mono);font-size:.8rem;padding:7px 0;color:var(--blue)"><span id="v-Ms">—</span> kg</div>
+          </div>
+        </div>
+        <div class="ctl" style="margin-bottom:0">
+          <div class="ctl-lab"><span>D<sub>b</sub> burbuja (m)</span><span class="val" id="v-Db">0.05</span></div>
+          <input type="range" id="sl-Db" min="0.01" max="0.15" step="0.005" value="0.05">
+          <small class="hint">u<sub>b</sub> = 0.7·√(g·D<sub>b</sub>) — sólo régimen burbujeante (gas)</small>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- VISUALIZATION -->
+  <section class="card" id="viz-card">
+    <div class="card-h"><span>Columna de fluidización</span><span id="viz-eq" style="font-family:var(--mono);font-size:.6rem;letter-spacing:0;text-transform:none;font-weight:400">ΔP por Ergun · expansión por conservación de sólidos</span></div>
+    <div class="card-b">
+      <div id="sim-wrap"><canvas id="sim"></canvas></div>
+      <div id="u-block">
+        <div class="u-head">
+          <b>Velocidad del fluido u</b>
+          <span><span class="uval" id="v-u">—</span><span class="uratio" id="v-ur">u/u<sub>mf</sub> = —</span></span>
+        </div>
+        <div id="u-track">
+          <input type="range" id="sl-u" min="0" max="1000" step="1" value="380">
+          <div class="u-tick" id="tick-umf">u<sub>mf</sub></div>
+          <div class="u-tick" id="tick-ut">u<sub>t</sub></div>
+        </div>
+        <div class="u-legend">
+          <span><i style="background:var(--r0)"></i>Lecho fijo</span>
+          <span><i style="background:var(--r2)"></i>Fluidizado</span>
+          <span><i style="background:var(--r3)"></i>Burbujeante</span>
+          <span><i style="background:var(--r4)"></i>Arrastre (u &gt; u<sub>t</sub>)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS / CHARTS -->
+  <section class="card" id="panel-card">
+    <div class="tabs">
+      <button class="tab on" data-pane="res">Resultados</button>
+      <button class="tab" data-pane="charts">Gráficas</button>
+    </div>
+    <div class="tabpane on" id="pane-res">
+      <div id="res-grid">
+        <div class="res hero"><b>u<sub>mf</sub> mínima fluidización</b><span id="r-umf">—</span><i>m/s</i></div>
+        <div class="res hero"><b>ΔP caída de presión</b><span id="r-dp">—</span><i>Pa</i></div>
+        <div class="res hero"><b>u<sub>t</sub> terminal</b><span id="r-ut">—</span><i>m/s</i></div>
+        <div class="res"><b>u operación</b><span id="r-u">—</span><i>m/s</i></div>
+        <div class="res"><b>u/u<sub>mf</sub></b><span id="r-ur">—</span></div>
+        <div class="res"><b>Re<sub>p</sub></b><span id="r-re">—</span></div>
+        <div class="res"><b>ε operativa</b><span id="r-eps">—</span></div>
+        <div class="res"><b>L altura lecho</b><span id="r-L">—</span><i>m</i></div>
+        <div class="res"><b>L/L<sub>M</sub> expansión</b><span id="r-exp">—</span></div>
+        <div class="res"><b>L<sub>M</sub></b><span id="r-Lm">—</span><i>m</i></div>
+        <div class="res"><b>Re<sub>p,mf</sub></b><span id="r-remf">—</span></div>
+        <div class="res"><b>u<sub>b</sub> burbuja</b><span id="r-ub">—</span><i>m/s</i></div>
+      </div>
+      <div id="model-box">
+        <b>Modelo (según apuntes de la Unidad II)</b><br>
+        <span class="eq">ΔP/L = 150·(1−ε)²/ε³ · μu/(φs²dp²) + 1.75·(1−ε)/ε³ · ρf u²/(φs dp)  — Ergun (lecho fijo)</span>
+        <span class="eq">A·u_mf + B·u_mf² = (ρp−ρf)(1−εM)g  →  u_mf = [−A+√(A²+4BC)]/2B</span>
+        <span class="eq">u ≥ u_mf :  ΔP = (ρp−ρf)(1−εM)·g·L_M  (constante = peso efectivo)</span>
+        <span class="eq">(1−ε)L = (1−εM)L_M  →  L = L_M(1−εM)/(1−ε)  — conservación de sólidos</span>
+        <span class="eq">Gas: L = L_M(u_b−u_mf)/(u_b−u), u_b = 0.7√(g·D_b) · Líquido: ε³/(1−ε) ∝ u</span>
+      </div>
+    </div>
+    <div class="tabpane" id="pane-charts">
+      <div id="charts-pane">
+        <div class="grp">Operación · responden a la velocidad u</div>
+        <div class="chart-card"><h4>ΔP vs velocidad superficial</h4><p>Curva de Ergun y meseta al cruzar u<sub>mf</sub> — el fenómeno a validar</p><canvas id="ch-dp"></canvas></div>
+        <div class="chart-card"><h4>Altura del lecho L vs u</h4><p>Constante en lecho fijo, expansión después de u<sub>mf</sub></p><canvas id="ch-L"></canvas></div>
+        <div class="chart-card"><h4>Mapa de régimen · u/u<sub>mf</sub></h4><p>Posición del punto de operación entre u<sub>mf</sub> y u<sub>t</sub></p><canvas id="ch-reg"></canvas></div>
+        <div class="chart-card"><h4>Reynolds de partícula vs u</h4><p>Re<sub>p</sub> = ρ<sub>f</sub>·u·d<sub>p</sub>/μ</p><canvas id="ch-re"></canvas></div>
+        <div class="grp">Paramétricas · sensibilidad del diseño</div>
+        <div class="chart-card"><h4>Velocidad terminal u<sub>t</sub> vs d<sub>p</sub></h4><p>Stokes → transición → Newton</p><canvas id="ch-utdp"></canvas></div>
+        <div class="chart-card"><h4>u<sub>mf</sub> vs d<sub>p</sub></h4><p>Dependencia ~d<sub>p</sub>² (laminar) → ~√d<sub>p</sub> (inercial)</p><canvas id="ch-umfdp"></canvas></div>
+        <div class="chart-card"><h4>u<sub>mf</sub> vs viscosidad μ</h4><p>Fluidos más viscosos fluidizan a menor velocidad</p><canvas id="ch-umfmu"></canvas></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>Ergun · fluidización incipiente · conservación de sólidos — Operación estable: u<sub>mf</sub> &lt; u &lt; u<sub>t</sub></footer>
+
+<!-- AR overlays -->
+<div id="ar-top">
+  <button class="hbtn" id="btn-exit-ar">← Volver a 2D</button>
+  <div id="ar-msg">Apunta la cámara al marcador HIRO impreso</div>
+</div>
+<div id="ar-hud">
+  <div id="ar-data">—</div>
+  <div class="row"><label>u (m/s)</label><input type="range" id="ar-u" min="0" max="1000" step="1" value="380"><span class="v" id="ar-vu">—</span></div>
+  <div class="row"><label>dp (µm)</label><input type="range" id="ar-dp" min="50" max="3000" step="10" value="500"><span class="v" id="ar-vdp">500 µm</span></div>
+  <div class="row"><label>ε lecho</label><input type="range" id="ar-eps" min="0.35" max="0.55" step="0.005" value="0.42"><span class="v" id="ar-veps">0.42</span></div>
+</div>
+<div id="ar-root"></div>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════════════
+const G = 9.81;
+const UMIN = 1e-4, UMAX = 5;               // rango del deslizador logarítmico de u (m/s)
+const S = {
+  u: 0.05, dp: 500e-6, epsM: 0.42, phi: 0.8,
+  rho_p: 2650, fluid: 'air', rho_f: 1.204, mu: 1.81e-5,
+  D: 0.10, L0: 0.40, Db: 0.05, Ms: 0, Hcol: 1.3, pcolor: '#B06E22',
+  paused: false, mode: '2d',
+  // salidas
+  umf: 0, ut: 0, ub: 0, Re: 0, ReMf: 0, dP: 0, dPmax: 0,
+  Lm: 0, L: 0, eps: 0, ratio: 0, regime: 0
+};
+const REG = {
+  air:   ['LECHO FIJO','INCIPIENTE','FLUIDIZADO','BURBUJEANTE','ARRASTRE'],
+  water: ['LECHO FIJO','INCIPIENTE','PARTICULADA','EXPANSIÓN ALTA','ARRASTRE']
+};
+const RCOL = ['#6B7A85','#7B5FB0','#1F8A5D','#D07020','#C43D3D'];
+
+// ═══════════════════════════════════════════════════════════════
+//  FÍSICA (ecuaciones del PDF de la Unidad II)
+// ═══════════════════════════════════════════════════════════════
+// Gradiente de presión de Ergun [Pa/m]
+function ergunGrad(u, eps, p){
+  return 150*Math.pow(1-eps,2)/Math.pow(eps,3)*p.mu*u/(p.phi*p.phi*p.dp*p.dp)
+       + 1.75*(1-eps)/Math.pow(eps,3)*p.rho_f*u*u/(p.phi*p.dp);
+}
+// Velocidad mínima de fluidización: A·u + B·u² = C  →  raíz positiva
+function umfOf(p){
+  const A = 150*Math.pow(1-p.epsM,2)/Math.pow(p.epsM,3)*p.mu/(p.phi*p.phi*p.dp*p.dp);
+  const B = 1.75*(1-p.epsM)/Math.pow(p.epsM,3)*p.rho_f/(p.phi*p.dp);
+  const C = (p.rho_p-p.rho_f)*(1-p.epsM)*G;
+  return Math.max((-A+Math.sqrt(A*A+4*B*C))/(2*B), 1e-9);
+}
+// Velocidad terminal con cambio de régimen (Stokes / intermedio / Newton)
+function utOf(p){
+  let ut = (p.rho_p-p.rho_f)*G*p.dp*p.dp/(18*p.mu);          // Stokes
+  let Re = p.rho_f*ut*p.dp/p.mu;
+  if (Re >= 1){
+    ut = Math.pow(4/225*Math.pow(p.rho_p-p.rho_f,2)*G*G/(p.rho_f*p.mu), 1/3)*p.dp; // intermedio
+    Re = p.rho_f*ut*p.dp/p.mu;
+    if (Re >= 1000) ut = Math.sqrt(3.03*(p.rho_p-p.rho_f)*G*p.dp/p.rho_f);          // Newton
+  }
+  return ut;
+}
+// Porosidad en fluidización particulada (líquido): ε³/(1−ε) ∝ u  (continua en u_mf)
+function epsParticulate(u, umf, epsM){
+  const target = (u/umf) * Math.pow(epsM,3)/(1-epsM);
+  const f = e => Math.pow(e,3)/(1-e);
+  let lo = epsM, hi = 0.995;
+  if (f(hi) < target) return hi;
+  for (let i=0; i<45; i++){ const m=(lo+hi)/2; (f(m)<target) ? lo=m : hi=m; }
+  return (lo+hi)/2;
+}
+// Estado completo dado u (función pura para curvas de gráficas)
+function stateAt(u, p){
+  const Lm = Math.max(p.L0, 0.02);
+  const umf = umfOf(p), ut = utOf(p);
+  const ub = 0.7*Math.sqrt(G*p.Db);
+  const dPmax = (p.rho_p-p.rho_f)*(1-p.epsM)*G*Lm;
+  let eps, L, dP;
+  if (u < umf){
+    eps = p.epsM; L = Lm;
+    dP = ergunGrad(u, p.epsM, p)*Lm;                 // Ergun — continua en u_mf
+  } else {
+    dP = dPmax;                                      // meseta = peso efectivo del lecho
+    if (p.fluid === 'water'){
+      eps = epsParticulate(u, umf, p.epsM);
+      L = Lm*(1-p.epsM)/(1-eps);
+    } else {                                         // gas: expansión por burbujeo
+      if (ub > umf){
+        const den = Math.max(ub-u, 0.35*(ub-umf));
+        L = Lm*(ub-umf)/den;
+      } else L = Lm;
+      L = Math.min(Math.max(L, Lm), Lm*(1-p.epsM)/(1-0.97));
+      eps = 1-(1-p.epsM)*Lm/L;
+    }
+  }
+  return {umf, ut, ub, Lm, L, eps, dP, dPmax, Re: p.rho_f*u*p.dp/p.mu};
+}
+function regimeOf(u, st, p){
+  const r = u/st.umf;
+  if (u >= st.ut) return 4;
+  if (r < 0.97)   return 0;
+  if (r <= 1.08)  return 1;
+  if (p.fluid === 'air') return r < 1.8 ? 2 : 3;
+  return st.eps < 0.75 ? 2 : 3;
+}
+function calc(){
+  const st = stateAt(S.u, S);
+  Object.assign(S, st);
+  S.ratio  = S.u/S.umf;
+  S.Ms     = S.rho_p*(Math.PI*S.D*S.D/4)*(1-S.epsM)*S.L0;
+  S.Hcol   = Math.max(1.30, 1.15*S.L);
+  S.ReMf   = S.rho_f*S.umf*S.dp/S.mu;
+  S.regime = regimeOf(S.u, st, S);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UTILIDADES + UI
+// ═══════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const uFromSlider = v => UMIN*Math.pow(UMAX/UMIN, v/1000);
+const sliderFromU = u => 1000*Math.log(u/UMIN)/Math.log(UMAX/UMIN);
+const posU = u => Math.min(Math.max(Math.log(u/UMIN)/Math.log(UMAX/UMIN),0),1);
+function fmt(v, d=3){
+  if (!isFinite(v)) return '—';
+  const a = Math.abs(v);
+  if (a !== 0 && (a < 1e-2 || a >= 1e4)) return v.toExponential(2);
+  return v.toPrecision(d);
+}
+function fmtU(u){ return u < 0.01 ? (u*1000).toPrecision(3)+' mm/s' : u.toPrecision(3)+' m/s'; }
+
+let needChart = true;
+function refresh(){
+  calc();
+  updateResults();
+  updateSliderTrack();
+  needChart = true;
+  drawChartsIfVisible();
+}
+function updateResults(){
+  const badge = $('regime-badge');
+  badge.textContent = REG[S.fluid][S.regime];
+  badge.style.color = RCOL[S.regime];
+  badge.style.borderColor = RCOL[S.regime];
+  badge.style.background = RCOL[S.regime]+'14';
+  $('v-u').textContent = fmtU(S.u);
+  $('v-ur').innerHTML  = 'u/u<sub>mf</sub> = '+fmt(S.ratio);
+  $('v-dp').textContent = Math.round(S.dp*1e6)+' µm';
+  $('v-eps').textContent = S.epsM.toFixed(3);
+  $('v-L0').textContent = S.L0.toFixed(2)+' m';
+  $('v-Ms').textContent = S.Ms.toFixed(2);
+  $('r-umf').textContent = fmt(S.umf);  $('r-ut').textContent = fmt(S.ut);
+  $('r-u').textContent   = fmt(S.u);    $('r-ur').textContent = fmt(S.ratio);
+  $('r-dp').textContent  = S.dP < 1 ? S.dP.toPrecision(3) : Math.round(S.dP).toLocaleString('es');
+  $('r-re').textContent  = fmt(S.Re);   $('r-remf').textContent = fmt(S.ReMf);
+  $('r-eps').textContent = S.eps.toFixed(3);
+  $('r-L').textContent   = S.L.toFixed(3);
+  $('r-Lm').textContent  = S.Lm.toFixed(3);
+  $('r-exp').textContent = (S.L/S.Lm).toFixed(3);
+  $('r-ub').textContent  = S.fluid==='air' ? fmt(S.ub) : 'n/a';
+  $('ar-vu').textContent = fmtU(S.u);
+  $('ar-data').textContent = 'ΔP '+(S.dP<1?S.dP.toPrecision(2):Math.round(S.dP))+' Pa · u/umf '+fmt(S.ratio)+' · L '+S.L.toFixed(2)+' m · '+REG[S.fluid][S.regime];
+  $('ar-vdp').textContent = Math.round(S.dp*1e6)+' µm';
+  $('ar-veps').textContent = S.epsM.toFixed(3);
+}
+// Pista del deslizador de u: zonas de régimen + marcas u_mf / u_t
+function updateSliderTrack(){
+  const pm = posU(S.umf)*100, pt = posU(S.ut)*100;
+  const g = `linear-gradient(90deg,
+    #C9D4DA 0%, #C9D4DA ${pm}%,
+    #9CD3B6 ${pm}%, #9CD3B6 ${Math.max(pm,pt)}%,
+    #EFB6B6 ${Math.max(pm,pt)}%, #EFB6B6 100%)`;
+  ['sl-u','ar-u'].forEach(id => $(id).style.background = g);
+  $('tick-umf').style.left = pm+'%';
+  $('tick-ut').style.left  = Math.min(pt,99)+'%';
+}
+// Enlaces de controles (2D y AR comparten estado)
+function bindU(id){
+  $(id).addEventListener('input', function(){
+    S.u = uFromSlider(parseFloat(this.value));
+    syncSliders(id); refresh();
+  });
+}
+function syncSliders(src){
+  const su = sliderFromU(S.u);
+  if (src!=='sl-u')  $('sl-u').value  = su;
+  if (src!=='ar-u')  $('ar-u').value  = su;
+  if (src!=='sl-dp') $('sl-dp').value = S.dp*1e6;
+  if (src!=='ar-dp') $('ar-dp').value = S.dp*1e6;
+  if (src!=='sl-eps') $('sl-eps').value = S.epsM;
+  if (src!=='ar-eps') $('ar-eps').value = S.epsM;
+}
+bindU('sl-u'); bindU('ar-u');
+
+['sl-dp','ar-dp'].forEach(id => $(id).addEventListener('input', function(){
+  S.dp = parseFloat(this.value)*1e-6;
+  $('v-dp').textContent = this.value+' µm';
+  syncSliders(id); refresh();
+}));
+['sl-eps','ar-eps'].forEach(id => $(id).addEventListener('input', function(){
+  S.epsM = parseFloat(this.value);
+  $('v-eps').textContent = S.epsM.toFixed(3);
+  syncSliders(id); refresh();
+}));
+$('sl-Db').addEventListener('input', function(){ S.Db = parseFloat(this.value); $('v-Db').textContent = this.value; refresh(); });
+$('in-D').addEventListener('input', function(){ S.D = Math.max(parseFloat(this.value)||0.1, 0.02); refresh(); });
+$('sl-L0').addEventListener('input', function(){ S.L0 = parseFloat(this.value); refresh(); });
+$('sel-mat').addEventListener('change', function(){
+  S.rho_p = parseFloat(this.value);
+  S.pcolor = this.selectedOptions[0].dataset.c || '#B06E22';
+  refresh();
+});
+$('sel-fluid').addEventListener('change', function(){
+  S.fluid = this.value;
+  if (this.value === 'air'){ S.rho_f = 1.204; S.mu = 1.81e-5; }
+  else { S.rho_f = 998; S.mu = 1.002e-3; }
+  refresh();
+});
+document.querySelectorAll('#phi-chips .chip').forEach(c => c.addEventListener('click', function(){
+  document.querySelectorAll('#phi-chips .chip').forEach(x=>x.classList.remove('sel'));
+  this.classList.add('sel');
+  S.phi = parseFloat(this.dataset.phi); refresh();
+}));
+// Pestañas
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', function(){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.tabpane').forEach(x=>x.classList.remove('on'));
+  this.classList.add('on');
+  $('pane-'+this.dataset.pane).classList.add('on');
+  if (this.dataset.pane==='charts'){ needChart = true; drawChartsIfVisible(); }
+}));
+// Pausa — congela el movimiento; los cálculos siguen respondiendo a los controles
+$('btn-pause').addEventListener('click', function(){
+  S.paused = !S.paused;
+  this.textContent = S.paused ? '▶ Reanudar' : '⏸ Pausa';
+  this.classList.toggle('on', S.paused);
+});
+</script>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+//  SIMULACIÓN 2D — columna, partículas, burbujas, manómetro
+// ═══════════════════════════════════════════════════════════════
+const cv = $('sim'), cx = cv.getContext('2d');
+let W=0, H=0, DPR=1, CL=0, CT=0, CW=0, CH=0;       // column box
+const NP = 110, NBUB = 9;
+const pts = [], bubs = [];
+for (let i=0;i<NP;i++) pts.push({x:0,y:0,tx:0,ty:0,ph:Math.random()*6.28,sp:.5+Math.random()*.8,rf:.75+Math.random()*.5,esc:Math.random()<.3});
+for (let i=0;i<NBUB;i++) bubs.push({x:0,y:0,r:0,vy:0,on:false,ph:Math.random()*6.28});
+
+function sizeSim(){
+  const w = cv.parentElement.clientWidth, h = cv.parentElement.clientHeight;
+  DPR = Math.min(window.devicePixelRatio||1, 2);
+  cv.width = w*DPR; cv.height = h*DPR;
+  W = w; H = h;
+  CW = Math.min(W*0.40, 240);
+  CH = H*0.82;
+  CL = (W-CW)/2 - W*0.06;
+  CT = H*0.06;
+  packGrid(true);
+}
+function nVis(){ return Math.min(Math.round(170*(1-S.epsM)), NP); }
+function packGrid(hard){
+  const cols = 8, sp = (CW-14)/cols;
+  const bedPix = bedPixH(), NPv = nVis();
+  pts.forEach((p,i)=>{
+    const c = i%cols, r = Math.floor(i/cols);
+    p.tx = CL+7+sp*(c+0.5)+((r%2)?sp*0.24:0);
+    p.ty = CT+CH-8-(r+0.5)*Math.min(sp*0.8, (bedPix-12)/Math.ceil(NPv/cols));
+    if (hard){ p.x=p.tx; p.y=p.ty; }
+  });
+}
+function bedPixH(){ return CH * Math.min(Math.max(S.L/S.Hcol, 0.04), 0.94); }
+
+let lt = 0, simT = 0;
+function loop(ts){
+  requestAnimationFrame(loop);
+  if (S.mode!=='2d') { lt=ts; return; }
+  const dt = S.paused ? 0 : Math.min((ts-lt)/1000, 0.05);
+  lt = ts;
+  draw(dt);
+}
+function draw(dt){
+  simT += dt; const t = simT;
+  cx.setTransform(DPR,0,0,DPR,0,0);
+  cx.clearRect(0,0,W,H);
+  const reg = S.regime, rc = RCOL[reg], ratio = S.ratio;
+  const bedPix = bedPixH(), bedTop = CT+CH-bedPix;
+
+  // ── flechas de flujo de entrada ──
+  if (S.u > UMIN*2){
+    const speed = 30+120*posU(S.u);
+    cx.strokeStyle = '#0E6BA8'; cx.fillStyle = '#0E6BA8'; cx.lineWidth = 1.6;
+    for (let i=0;i<4;i++){
+      const ax = CL+CW*(0.18+0.22*i);
+      const ay = CT+CH+26 - ((t*speed + i*17) % 22);
+      cx.globalAlpha = 0.65;
+      cx.beginPath(); cx.moveTo(ax,ay+9); cx.lineTo(ax,ay); cx.stroke();
+      cx.beginPath(); cx.moveTo(ax,ay-2); cx.lineTo(ax-3.4,ay+4); cx.lineTo(ax+3.4,ay+4); cx.closePath(); cx.fill();
+      cx.globalAlpha = 1;
+    }
+    cx.font = '10px IBM Plex Mono'; cx.fillStyle = '#5B6E79'; cx.textAlign='center';
+    cx.fillText('u = '+fmtU(S.u), CL+CW/2, CT+CH+40);
+  }
+
+  // ── columna ──
+  cx.fillStyle = '#FBFDFE';
+  cx.strokeStyle = '#B9C7CF'; cx.lineWidth = 2;
+  roundRect(CL, CT, CW, CH, 8); cx.fill(); cx.stroke();
+  // placa distribuidora
+  cx.strokeStyle = '#8FA1AB'; cx.lineWidth = 1.2;
+  for (let x=CL+4; x<CL+CW-3; x+=7){
+    cx.beginPath(); cx.moveTo(x, CT+CH-2); cx.lineTo(x+4, CT+CH-7); cx.stroke();
+  }
+
+  // ── lecho (relleno) ──
+  const tint = hexRgb(S.pcolor);
+  const grad = cx.createLinearGradient(0, bedTop, 0, CT+CH);
+  grad.addColorStop(0, 'rgba('+tint+',0.10)');
+  grad.addColorStop(1, 'rgba('+tint+',0.30)');
+  cx.fillStyle = grad;
+  cx.fillRect(CL+1.5, bedTop, CW-3, bedPix-2);
+
+  // superficie del lecho
+  cx.strokeStyle = rc; cx.lineWidth = 2;
+  cx.beginPath();
+  if (reg === 0){ cx.moveTo(CL+2, bedTop); cx.lineTo(CL+CW-2, bedTop); }
+  else {
+    const amp = 2 + reg*1.6;
+    cx.moveTo(CL+2, bedTop);
+    for (let x=0; x<=CW-4; x+=4) cx.lineTo(CL+2+x, bedTop + Math.sin(t*3.2 + x*0.09)*amp);
+  }
+  cx.stroke();
+  // cota L
+  cx.strokeStyle = '#9AB0BB'; cx.setLineDash([3,3]); cx.lineWidth=1;
+  cx.beginPath(); cx.moveTo(CL+CW+8, bedTop); cx.lineTo(CL+CW+30, bedTop); cx.stroke();
+  cx.beginPath(); cx.moveTo(CL+CW+8, CT+CH); cx.lineTo(CL+CW+30, CT+CH); cx.stroke();
+  cx.setLineDash([]);
+  cx.beginPath(); cx.moveTo(CL+CW+19, bedTop); cx.lineTo(CL+CW+19, CT+CH); cx.stroke();
+  cx.save(); cx.translate(CL+CW+30, (bedTop+CT+CH)/2); cx.rotate(-Math.PI/2);
+  cx.font='10px IBM Plex Mono'; cx.fillStyle='#5B6E79'; cx.textAlign='center';
+  cx.fillText('L = '+S.L.toFixed(2)+' m', 0, 0); cx.restore();
+
+  // ── partículas ──
+  packGrid(false);
+  const pr = Math.min(Math.max(3.2*(S.dp/500e-6), 1.6), 7.5);
+  const NPv = nVis(), k = Math.min(dt*60, 1.5);
+  cx.fillStyle = S.pcolor;
+  pts.forEach((p,i)=>{
+    if (i >= NPv) return;
+    const R = pr*p.rf;
+    if (reg <= 1){
+      // asentado / vibración incipiente
+      const jig = (reg===1 ? 1.2 : 0)*k;
+      p.x += (p.tx - p.x)*Math.min(dt*6,1) + (Math.random()-.5)*jig;
+      p.y += (p.ty - p.y)*Math.min(dt*6,1) + (Math.random()-.5)*jig;
+    } else if (reg === 4){
+      // arrastre: ascenso y reciclo
+      p.y -= (40 + 140*Math.min(S.u/S.ut,2))*dt*p.sp;
+      p.x += Math.sin(t*4+p.ph)*0.8*k;
+      if (p.y < CT-10){ p.y = CT+CH-6; p.x = CL+6+Math.random()*(CW-12); }
+    } else {
+      // fluidizado / burbujeante: agitación confinada al lecho
+      const agit = (0.5 + Math.min(ratio-1, 6)*0.55) * (reg===3?1.5:1);
+      p.x += Math.sin(t*4.5+p.ph)*agit*p.sp*k;
+      p.y += ((Math.random()-.5)*agit*3.2*p.sp + Math.sin(t*2+p.ph)*0.3)*k;
+      if (p.y < bedTop+R+2) p.y = bedTop+R+2+Math.random()*4;
+      if (p.y > CT+CH-R-3) p.y = CT+CH-R-3;
+    }
+    if (p.x < CL+R+3) p.x = CL+R+3;
+    if (p.x > CL+CW-R-3) p.x = CL+CW-R-3;
+    if (reg<4 && p.y < bedTop+R) p.y = bedTop+R+2;
+    if (p.y > CT+CH-R-2) p.y = CT+CH-R-2;
+    cx.beginPath(); cx.arc(p.x, p.y, R, 0, 6.283); cx.fill();
+  });
+
+  // ── burbujas (gas, régimen burbujeante) ──
+  if (reg === 3 && S.fluid === 'air'){
+    cx.fillStyle = 'rgba(14,107,168,0.14)'; cx.strokeStyle = 'rgba(14,107,168,0.55)'; cx.lineWidth = 1.4;
+    bubs.forEach(b=>{
+      if (!b.on){
+        if (Math.random() < dt*2.2){
+          b.on = true;
+          b.r = 5 + Math.random()*Math.min(11, 4+ratio*2);
+          b.x = CL + b.r + 4 + Math.random()*(CW - b.r*2 - 8);
+          b.y = CT+CH-8;
+          b.vy = 26 + 48*S.ub;
+        }
+      } else {
+        b.y -= b.vy*dt; b.x += Math.sin(t*5+b.ph)*0.7*k;
+        if (b.y < bedTop + b.r) b.on = false;
+        else { cx.beginPath(); cx.arc(b.x,b.y,b.r,0,6.283); cx.fill(); cx.stroke(); }
+      }
+    });
+  } else bubs.forEach(b=>b.on=false);
+
+  // ── manómetro ΔP ──
+  const mX = CL - 52, mW = 20, mT = CT+8, mH = CH-16;
+  const scale = S.dPmax*1.25;
+  const fill = Math.min(S.dP/scale, 1)*mH;
+  cx.fillStyle = '#FBFDFE'; cx.strokeStyle = '#B9C7CF'; cx.lineWidth=1.5;
+  roundRect(mX, mT, mW, mH, 6); cx.fill(); cx.stroke();
+  cx.fillStyle = reg===0 ? '#5B8EB5' : rc+'CC';
+  roundRect(mX+2.5, mT+mH-fill+2, mW-5, Math.max(fill-4,0), 4); cx.fill();
+  // línea de meseta = peso efectivo
+  const plY = mT + mH - (S.dPmax/scale)*mH;
+  cx.strokeStyle = '#C43D3D'; cx.setLineDash([4,3]); cx.lineWidth=1.3;
+  cx.beginPath(); cx.moveTo(mX-6, plY); cx.lineTo(mX+mW+6, plY); cx.stroke(); cx.setLineDash([]);
+  cx.font='9.5px IBM Plex Mono'; cx.fillStyle='#5B6E79'; cx.textAlign='center';
+  cx.fillText('ΔP', mX+mW/2, mT-10);
+  cx.fillText(S.dP<1?S.dP.toPrecision(2):Math.round(S.dP)+'', mX+mW/2, mT+mH+14);
+  cx.fillText('Pa', mX+mW/2, mT+mH+25);
+  cx.save(); cx.translate(mX-12, plY); cx.rotate(-Math.PI/2);
+  cx.fillStyle='#C43D3D'; cx.textAlign='center';
+  cx.fillText('peso efectivo del lecho', 0, 0); cx.restore();
+}
+function hexRgb(h){
+  return parseInt(h.slice(1,3),16)+','+parseInt(h.slice(3,5),16)+','+parseInt(h.slice(5,7),16);
+}
+function roundRect(x,y,w,h,r){
+  cx.beginPath();
+  cx.moveTo(x+r,y); cx.arcTo(x+w,y,x+w,y+h,r); cx.arcTo(x+w,y+h,x,y+h,r);
+  cx.arcTo(x,y+h,x,y,r); cx.arcTo(x,y,x+w,y,r); cx.closePath();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GRÁFICAS (7) — lienzo propio, ejes lineales o logarítmicos
+// ═══════════════════════════════════════════════════════════════
+function drawChart(canvas, cfg){
+  const dpr = Math.min(window.devicePixelRatio||1,2);
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w) return;
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  const c = canvas.getContext('2d');
+  c.setTransform(dpr,0,0,dpr,0,0);
+  c.clearRect(0,0,w,h);
+  const ml=48, mr=12, mt=12, mb=28;
+  const pw = w-ml-mr, ph = h-mt-mb;
+  const tx = cfg.logx ? Math.log10 : (v=>v);
+  const ty = cfg.logy ? Math.log10 : (v=>v);
+  let xmin=Infinity,xmax=-Infinity,ymin=Infinity,ymax=-Infinity;
+  cfg.xs.forEach(v=>{const q=tx(v); if(q<xmin)xmin=q; if(q>xmax)xmax=q;});
+  cfg.series.forEach(s=>s.ys.forEach(v=>{
+    if (cfg.logy && v<=0) return;
+    const q=ty(v); if(isFinite(q)){ if(q<ymin)ymin=q; if(q>ymax)ymax=q; }
+  }));
+  if (!isFinite(ymin)){ ymin=0; ymax=1; }
+  if (ymax-ymin < 1e-12){ ymax=ymin+1; }
+  if (!cfg.logy){ const pad=(ymax-ymin)*0.08; ymin-=pad; ymax+=pad; if(cfg.y0 && ymin>0) ymin=0; }
+  const X = v => ml + (tx(v)-xmin)/(xmax-xmin)*pw;
+  const Y = v => mt + ph - (ty(v)-ymin)/(ymax-ymin)*ph;
+
+  // rejilla + rótulos
+  c.font = '9px IBM Plex Mono'; c.fillStyle='#7A8B95'; c.strokeStyle='#E7EDF0'; c.lineWidth=1;
+  const xticks = cfg.logx ? logTicks(xmin,xmax) : linTicks(xmin,xmax,5);
+  const yticks = cfg.logy ? logTicks(ymin,ymax) : linTicks(ymin,ymax,5);
+  c.textAlign='center';
+  xticks.forEach(v=>{
+    const px = ml+(v-xmin)/(xmax-xmin)*pw;
+    c.beginPath(); c.moveTo(px,mt); c.lineTo(px,mt+ph); c.stroke();
+    c.fillText(tickLab(v,cfg.logx), px, mt+ph+13);
+  });
+  c.textAlign='right';
+  yticks.forEach(v=>{
+    const py = mt+ph-(v-ymin)/(ymax-ymin)*ph;
+    c.beginPath(); c.moveTo(ml,py); c.lineTo(ml+pw,py); c.stroke();
+    c.fillText(tickLab(v,cfg.logy), ml-5, py+3);
+  });
+  c.strokeStyle='#B9C7CF'; c.strokeRect(ml,mt,pw,ph);
+  c.textAlign='center'; c.fillStyle='#5B6E79';
+  c.fillText(cfg.xlab, ml+pw/2, h-3);
+  c.save(); c.translate(11, mt+ph/2); c.rotate(-Math.PI/2); c.fillText(cfg.ylab,0,0); c.restore();
+
+  // líneas de referencia verticales
+  (cfg.vlines||[]).forEach(v=>{
+    if (v.x<=0 && cfg.logx) return;
+    const px = X(v.x); if (px<ml||px>ml+pw) return;
+    c.strokeStyle=v.color; c.setLineDash([4,3]); c.lineWidth=1.2;
+    c.beginPath(); c.moveTo(px,mt); c.lineTo(px,mt+ph); c.stroke(); c.setLineDash([]);
+    c.fillStyle=v.color; c.textAlign='left';
+    c.fillText(v.label, px+3, mt+10);
+  });
+  // series
+  cfg.series.forEach(s=>{
+    c.strokeStyle=s.color; c.lineWidth=2; c.beginPath();
+    let started=false;
+    cfg.xs.forEach((x,i)=>{
+      const y=s.ys[i];
+      if (cfg.logy && y<=0){ started=false; return; }
+      const px=X(x), py=Y(y);
+      if (!isFinite(py)){ started=false; return; }
+      started ? c.lineTo(px,py) : c.moveTo(px,py); started=true;
+    });
+    c.stroke();
+  });
+  // punto de operación
+  if (cfg.marker && isFinite(cfg.marker.y)){
+    const px=X(cfg.marker.x), py=Y(cfg.marker.y);
+    c.fillStyle='#fff'; c.strokeStyle=RCOL[S.regime]; c.lineWidth=2.6;
+    c.beginPath(); c.arc(px,py,5.5,0,6.283); c.fill(); c.stroke();
+    c.fillStyle=RCOL[S.regime];
+    c.beginPath(); c.arc(px,py,2.2,0,6.283); c.fill();
+  }
+}
+function linTicks(a,b,n){
+  const span=b-a, step=Math.pow(10,Math.floor(Math.log10(span/n)));
+  const s=[1,2,5,10].map(m=>m*step).find(st=>span/st<=n+1)||step*10;
+  const out=[]; for(let v=Math.ceil(a/s)*s; v<=b+1e-9; v+=s) out.push(v); return out;
+}
+function logTicks(a,b){ const out=[]; for(let e=Math.ceil(a); e<=Math.floor(b); e++) out.push(e); if(out.length<2){out.length=0; for(let e=Math.ceil(a*2)/2; e<=b; e+=0.5) out.push(e);} return out; }
+function tickLab(v,isLog){
+  if (isLog){ const x=Math.pow(10,v); return x>=0.01&&x<1e4 ? +x.toPrecision(2)+'' : '1e'+Math.round(v); }
+  return Math.abs(v)>=1e4||((Math.abs(v)<1e-2)&&v!==0) ? v.toExponential(0) : +v.toPrecision(3)+'';
+}
+
+// mapa de régimen (gráfica 3): franjas de color en eje log de u
+function drawRegimeMap(canvas){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=canvas.clientWidth,h=canvas.clientHeight; if(!w)return;
+  canvas.width=w*dpr; canvas.height=h*dpr;
+  const c=canvas.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,w,h);
+  const ml=48,mr=12,mt=26,mb=28,pw=w-ml-mr,ph=h-mt-mb;
+  const xm=Math.log10(UMIN), xM=Math.log10(UMAX);
+  const X=u=>ml+(Math.log10(u)-xm)/(xM-xm)*pw;
+  const zones=[];
+  const uBub = S.umf*1.8;
+  zones.push({a:UMIN, b:S.umf, col:RCOL[0], lab:'Fijo'});
+  if (S.fluid==='air' && uBub < S.ut){
+    zones.push({a:S.umf, b:uBub, col:RCOL[2], lab:'Fluidizado'});
+    zones.push({a:uBub, b:S.ut, col:RCOL[3], lab:'Burbujeante'});
+  } else zones.push({a:S.umf, b:S.ut, col:RCOL[2], lab:S.fluid==='air'?'Fluidizado':'Particulada'});
+  zones.push({a:S.ut, b:UMAX, col:RCOL[4], lab:'Arrastre'});
+  c.font='9px IBM Plex Mono';
+  zones.forEach(z=>{
+    const x1=Math.max(X(z.a),ml), x2=Math.min(X(Math.max(z.b,UMIN)),ml+pw);
+    if (x2<=x1) return;
+    c.fillStyle=z.col+'33'; c.fillRect(x1,mt,x2-x1,ph);
+    c.fillStyle=z.col; c.textAlign='center';
+    if (x2-x1>44) c.fillText(z.lab,(x1+x2)/2,mt+ph/2+3);
+  });
+  c.strokeStyle='#B9C7CF'; c.strokeRect(ml,mt,pw,ph);
+  // marcas u_mf, u_t
+  [['u_mf',S.umf,RCOL[1]],['u_t',S.ut,RCOL[4]]].forEach(([lab,u,col])=>{
+    const px=X(u); if(px<ml||px>ml+pw)return;
+    c.strokeStyle=col; c.setLineDash([4,3]); c.beginPath(); c.moveTo(px,mt-4); c.lineTo(px,mt+ph); c.stroke(); c.setLineDash([]);
+    c.fillStyle=col; c.textAlign='center'; c.fillText(lab,px,mt-8);
+  });
+  // punto de operación
+  const px=X(S.u);
+  c.fillStyle=RCOL[S.regime]; c.strokeStyle='#fff'; c.lineWidth=2;
+  c.beginPath(); c.moveTo(px,mt+ph-4); c.lineTo(px-7,mt+ph+10); c.lineTo(px+7,mt+ph+10); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle='#5B6E79'; c.textAlign='center';
+  c.fillText('u ='+fmtU(S.u)+'  ·  u/u_mf = '+fmt(S.ratio), ml+pw/2, h-4);
+  // ejes en décadas
+  c.fillStyle='#7A8B95';
+  for(let e=Math.ceil(xm); e<=Math.floor(xM); e++){
+    const p=ml+(e-xm)/(xM-xm)*pw;
+    c.fillText('1e'+e, p, mt+ph+12);
+  }
+}
+
+const NSW = 150;
+function sweepU(){ const a=[]; for(let i=0;i<NSW;i++) a.push(UMIN*Math.pow(UMAX/UMIN,i/(NSW-1))); return a; }
+function drawCharts(){
+  const us = sweepU();
+  const dps=[], Ls=[], Res=[];
+  us.forEach(u=>{ const st=stateAt(u,S); dps.push(st.dP); Ls.push(st.L); Res.push(st.Re); });
+  const vl=[{x:S.umf,color:RCOL[1],label:'u_mf'},{x:S.ut,color:RCOL[4],label:'u_t'}];
+  drawChart($('ch-dp'),{xs:us,logx:true,series:[{ys:dps,color:'#0E6BA8'}],xlab:'u (m/s)',ylab:'ΔP (Pa)',vlines:vl,marker:{x:S.u,y:S.dP},y0:true});
+  drawChart($('ch-L'), {xs:us,logx:true,series:[{ys:Ls,color:'#C87F2F'}],xlab:'u (m/s)',ylab:'L (m)',vlines:vl,marker:{x:S.u,y:S.L},y0:true});
+  drawRegimeMap($('ch-reg'));
+  drawChart($('ch-re'),{xs:us,logx:true,logy:true,series:[{ys:Res,color:'#7B5FB0'}],xlab:'u (m/s)',ylab:'Re_p',vlines:vl,marker:{x:S.u,y:S.Re}});
+  // paramétricas
+  const dpr_=[]; for(let i=0;i<NSW;i++) dpr_.push((50+2950*i/(NSW-1))*1e-6);
+  const uts=dpr_.map(d=>utOf({...S,dp:d}));
+  const umfs=dpr_.map(d=>umfOf({...S,dp:d}));
+  const dpum=dpr_.map(d=>d*1e6);
+  drawChart($('ch-utdp'), {xs:dpum,logy:true,series:[{ys:uts,color:'#C43D3D'}],xlab:'dp (µm)',ylab:'u_t (m/s)',marker:{x:S.dp*1e6,y:S.ut}});
+  drawChart($('ch-umfdp'),{xs:dpum,logy:true,series:[{ys:umfs,color:'#1F8A5D'}],xlab:'dp (µm)',ylab:'u_mf (m/s)',marker:{x:S.dp*1e6,y:S.umf}});
+  const mus=[]; for(let i=0;i<NSW;i++) mus.push(1e-5*Math.pow(1000,i/(NSW-1)));   // 1e-5 → 1e-2 Pa·s
+  const umfmu=mus.map(m=>umfOf({...S,mu:m}));
+  drawChart($('ch-umfmu'),{xs:mus,logx:true,logy:true,series:[{ys:umfmu,color:'#0E6BA8'}],xlab:'μ (Pa·s)',ylab:'u_mf (m/s)',vlines:[{x:S.mu,color:'#C87F2F',label:'μ actual'}],marker:{x:S.mu,y:S.umf}});
+  needChart=false;
+}
+function drawChartsIfVisible(){
+  if (!needChart) return;
+  if ($('pane-charts').classList.contains('on') && S.mode==='2d') drawCharts();
+}
+</script>
+<!-- A-Frame + AR.js (según la rúbrica) -->
+<script src="https://aframe.io/releases/1.3.0/aframe.min.js" onerror="window.__afFail=true"></script>
+<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.7/aframe/build/aframe-ar.js" onerror="window.__arFail=true"></script>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+//  REALIDAD AUMENTADA — A-Frame + AR.js + marcador HIRO
+// ═══════════════════════════════════════════════════════════════
+let arBuilt = false, arScene = null;
+
+if (window.AFRAME){
+AFRAME.registerComponent('fluid-bed', {
+  init(){
+   try{
+    const T = AFRAME.THREE, root = this.el.object3D;
+    this.T = T;
+    const R = 0.55, HH = 2.2;
+    this.R = R; this.HH = HH;
+    // columna de vidrio
+    const glass = new T.Mesh(
+      new T.CylinderGeometry(R, R, HH, 28, 1, true),
+      new T.MeshPhongMaterial({color:0x9FC4DA, transparent:true, opacity:0.13, side:T.DoubleSide, depthWrite:false}));
+    glass.position.y = HH/2; root.add(glass);
+    const wire = new T.LineSegments(
+      new T.EdgesGeometry(new T.CylinderGeometry(R, R, HH, 18)),
+      new T.LineBasicMaterial({color:0x0E6BA8, transparent:true, opacity:0.5}));
+    wire.position.y = HH/2; root.add(wire);
+    // base / placa distribuidora
+    const base = new T.Mesh(new T.CylinderGeometry(R+0.06, R+0.06, 0.05, 28),
+      new T.MeshPhongMaterial({color:0x5B6E79}));
+    base.position.y = 0.02; root.add(base);
+    // lecho
+    this.bed = new T.Mesh(new T.CylinderGeometry(R-0.02, R-0.02, 1, 28),
+      new T.MeshPhongMaterial({color:0xC87F2F, transparent:true, opacity:0.30}));
+    root.add(this.bed);
+    this.surf = new T.Mesh(new T.CylinderGeometry(R-0.02, R-0.02, 0.015, 28),
+      new T.MeshPhongMaterial({color:0xC87F2F, transparent:true, opacity:0.6}));
+    root.add(this.surf);
+    // partículas
+    this.NP = 60;
+    this.pd = []; this.pm = [];
+    const pg = new T.SphereGeometry(0.032, 8, 8);
+    this.pmat = new T.MeshPhongMaterial({color:0xB06E22});
+    const pmat = this.pmat;
+    for (let i=0;i<this.NP;i++){
+      const m = new T.Mesh(pg, pmat);
+      root.add(m); this.pm.push(m);
+      this.pd.push({x:(Math.random()-.5)*0.85, y:0.06+Math.random()*0.5, z:(Math.random()-.5)*0.85,
+                    ph:Math.random()*6.28, sp:.5+Math.random()*.8});
+    }
+    // burbujas
+    this.NB = 6; this.bd = []; this.bm = [];
+    const bg = new T.SphereGeometry(1, 12, 12);
+    for (let i=0;i<this.NB;i++){
+      const m = new T.Mesh(bg, new T.MeshPhongMaterial({color:0x38A3DE, transparent:true, opacity:0.32}));
+      m.scale.setScalar(0.001);
+      root.add(m); this.bm.push(m);
+      this.bd.push({x:0,y:0,z:0,r:0.06,vy:0,on:false});
+    }
+    // luz
+    this.el.sceneEl.object3D.add(new T.AmbientLight(0xffffff, 0.75));
+    const dl = new T.DirectionalLight(0xffffff, 0.7); dl.position.set(1,3,2);
+    this.el.sceneEl.object3D.add(dl);
+    // panel de datos flotante — encima de la columna, siempre de cara a la cámara
+    this.panel = document.createElement('a-entity');
+    this.panel.setAttribute('position', {x: 0, y: HH+0.45, z: 0});
+    const bgp = document.createElement('a-plane');
+    bgp.setAttribute('width', 1.7); bgp.setAttribute('height', 1.0);
+    bgp.setAttribute('material', 'color:#FFFFFF; opacity:0.88; transparent:true; side:double');
+    this.txt = document.createElement('a-entity');
+    this.txt.setAttribute('position', {x: 0, y: 0, z: 0.01});
+    this.txt.setAttribute('text', {value:'', color:'#182B36', align:'center', width:2.4, wrapCount:24, font:'monoid'});
+    this.panel.appendChild(bgp);
+    this.panel.appendChild(this.txt);
+    this.el.appendChild(this.panel);
+    this._v = new T.Vector3();
+    this._acc = 0;
+   }catch(e){
+    console.error('fluid-bed init:', e);
+    const m = document.getElementById('ar-msg');
+    if (m) m.textContent = '⚠ Error 3D: ' + e.message;
+   }
+  },
+  tick(t, dtms){
+    if (S.mode !== 'ar') return;
+    const dt = S.paused ? 0 : Math.min(dtms/1000, 0.05);
+    this.simT = (this.simT||0) + dt;
+    const ts = this.simT, kk = Math.min(dt*60, 1.5);
+    this.pmat.color.set(S.pcolor);
+    const reg = S.regime, R = this.R, HH = this.HH;
+    // el panel gira solo para mirar a la cámara
+    const cam = this.el.sceneEl.camera;
+    if (cam && this.panel && this.panel.object3D){
+      cam.getWorldPosition(this._v);
+      this.panel.object3D.lookAt(this._v);
+    }
+    // altura del lecho (escala: columna = 3·Lm)
+    const frac = Math.min(Math.max(S.L/S.Hcol, 0.05), 0.93);
+    const bh = frac*HH;
+    this.bed.scale.set(1, bh, 1);
+    this.bed.position.y = 0.05 + bh/2;
+    const hex = parseInt(RCOL[reg].slice(1), 16);
+    this.bed.material.color.setHex(reg===0 ? 0xC87F2F : hex);
+    this.bed.material.opacity = 0.22 + reg*0.03;
+    this.surf.position.y = 0.05 + bh;
+    this.surf.material.color.setHex(hex);
+    // partículas
+    const psc = Math.min(Math.max(S.dp/500e-6, 0.45), 2.4);
+    const topY = 0.05 + bh - 0.05, maxR = R - 0.06*psc;
+    const NPv = Math.min(Math.round(95*(1-S.epsM)), this.NP);
+    this.pd.forEach((p,i)=>{
+      const m = this.pm[i];
+      m.visible = i < NPv;
+      if (i >= NPv) return;
+      m.scale.setScalar(psc);
+      if (reg <= 1){
+        // asentar hacia el fondo
+        const gy = 0.07 + (i/NPv)*Math.max(bh-0.12, 0.05);
+        p.y += (gy - p.y)*Math.min(dt*4, 1);
+        if (reg===1){ p.x += (Math.random()-.5)*0.006*kk; p.z += (Math.random()-.5)*0.006*kk; }
+      } else if (reg === 4){
+        p.y += (0.5 + S.u/Math.max(S.ut,1e-6))*dt*p.sp*1.6;
+        if (p.y > HH+0.3){ p.y = 0.06; p.x=(Math.random()-.5)*0.85; p.z=(Math.random()-.5)*0.85; }
+      } else {
+        const agit = (0.3 + Math.min(S.ratio-1, 6)*0.25)*(reg===3?1.6:1);
+        p.x += Math.sin(ts*4+p.ph)*0.01*agit*p.sp*60*dt;
+        p.z += Math.cos(ts*3.4+p.ph)*0.01*agit*p.sp*60*dt;
+        p.y += (Math.random()-.5)*0.05*agit*60*dt*p.sp;
+        if (p.y > topY) p.y = topY;
+        if (p.y < 0.07) p.y = 0.07;
+      }
+      const d = Math.hypot(p.x, p.z);
+      if (d > maxR){ p.x *= maxR/d; p.z *= maxR/d; }
+      m.position.set(p.x, p.y, p.z);
+    });
+    // burbujas
+    this.bd.forEach((b,i)=>{
+      const m = this.bm[i];
+      if (reg === 3 && S.fluid === 'air'){
+        if (!b.on){
+          if (Math.random() < dt*1.8){
+            b.on = true; b.r = 0.05 + Math.random()*0.1;
+            b.x = (Math.random()-.5)*0.6; b.z = (Math.random()-.5)*0.6;
+            b.y = 0.1; b.vy = 0.25 + S.ub*0.6;
+          }
+        } else {
+          b.y += b.vy*dt;
+          if (b.y > topY){ b.on = false; m.scale.setScalar(0.001); }
+          else { m.scale.setScalar(b.r); m.position.set(b.x, b.y, b.z); }
+        }
+      } else { b.on = false; m.scale.setScalar(0.001); }
+    });
+    // texto (4 veces por segundo)
+    this._acc += dtms;
+    if (this._acc > 250){
+      this._acc = 0;
+      this.txt.setAttribute('text', 'value',
+        'ΔP: ' + (S.dP<1?S.dP.toPrecision(2):Math.round(S.dP)) + ' Pa\n' +
+        'u: ' + fmtU(S.u) + '\n' +
+        'u/umf: ' + fmt(S.ratio) + '\n' +
+        'L: ' + S.L.toFixed(2) + ' m  (L/LM ' + (S.L/S.Lm).toFixed(2) + ')\n' +
+        REG[S.fluid][reg]);
+    }
+  }
+});
+}
+
+function buildAR(){
+  const root = $('ar-root');
+  root.innerHTML =
+    '<a-scene embedded vr-mode-ui="enabled:false" renderer="precision:medium" ' +
+    'arjs="sourceType:webcam; detectionMode:mono; debugUIEnabled:false;">' +
+      '<a-marker preset="hiro" smooth="true" smoothCount="8" smoothTolerance="0.01">' +
+        '<a-entity fluid-bed></a-entity>' +
+      '</a-marker>' +
+      '<a-entity camera></a-entity>' +
+    '</a-scene>';
+  arScene = root.querySelector('a-scene');
+  arScene.addEventListener('markerFound', ()=> $('ar-msg').textContent = '✓ Marcador detectado');
+  arScene.addEventListener('markerLost',  ()=> $('ar-msg').textContent = 'Apunta la cámara al marcador HIRO');
+  arBuilt = true;
+}
+let errHooked = false;
+function enterAR(){
+  if (!errHooked){
+    errHooked = true;
+    window.addEventListener('error', ev => {
+      if (S.mode === 'ar') $('ar-msg').textContent = '⚠ ' + (ev.message||'error').slice(0,90);
+    });
+  }
+  if (window.__afFail || window.__arFail || !window.AFRAME){
+    alert('No se pudieron cargar las librerías de RA (A-Frame / AR.js). Revisa tu conexión.');
+    return;
+  }
+  if (!window.isSecureContext){
+    alert('La cámara requiere HTTPS. Abre la versión publicada en GitHub Pages.');
+    return;
+  }
+  S.mode = 'ar';
+  document.body.classList.add('ar-on');
+  $('btn-ar').classList.add('on'); $('btn-2d').classList.remove('on');
+  if (!arBuilt) buildAR();
+  else {
+    arScene.play();
+    const v = document.getElementById('arjs-video');
+    if (v){ v.style.display=''; v.play&&v.play(); }
+  }
+  setTimeout(()=>window.dispatchEvent(new Event('resize')), 150);
+  setTimeout(()=>window.dispatchEvent(new Event('resize')), 800);
+}
+function exitAR(){
+  S.mode = '2d';
+  document.body.classList.remove('ar-on');
+  $('btn-2d').classList.add('on'); $('btn-ar').classList.remove('on');
+  if (arScene){
+    arScene.pause();
+    const v = document.getElementById('arjs-video');
+    if (v) v.style.display='none';
+  }
+  sizeSim(); needChart = true; drawChartsIfVisible();
+}
+$('btn-ar').addEventListener('click', enterAR);
+$('btn-2d').addEventListener('click', exitAR);
+$('btn-exit-ar').addEventListener('click', exitAR);
+
+// ═══════════════════════════════════════════════════════════════
+//  ARRANQUE
+// ═══════════════════════════════════════════════════════════════
+function boot(){
+  S.u = uFromSlider(380);
+  sizeSim();
+  $('v-dp').textContent = Math.round(S.dp*1e6)+' µm';
+  $('v-eps').textContent = S.epsM.toFixed(3);
+  refresh();
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize', ()=>{ if(S.mode==='2d'){ sizeSim(); needChart=true; drawChartsIfVisible(); } });
+window.addEventListener('load', boot);
+</script>
+</body>
+</html>
